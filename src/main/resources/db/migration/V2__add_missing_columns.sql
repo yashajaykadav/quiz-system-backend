@@ -15,5 +15,9 @@ DROP COLUMN option_c,
 DROP COLUMN option_d,
 DROP COLUMN correct_answer;
 
+-- Fix type column
+ALTER TABLE questions
+MODIFY COLUMN type ENUM('OBJECTIVE','DESCRIPTIVE') DEFAULT NULL;
+
 ALTER TABLE questions 
 ADD CONSTRAINT FK_questions_subject FOREIGN KEY (subject_id) REFERENCES subjects(id);
