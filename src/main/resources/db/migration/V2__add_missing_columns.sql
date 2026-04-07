@@ -15,9 +15,11 @@ DROP COLUMN option_c,
 DROP COLUMN option_d,
 DROP COLUMN correct_answer;
 
--- Fix type column
-ALTER TABLE questions
+ALTER TABLE questions 
 MODIFY COLUMN type ENUM('OBJECTIVE','DESCRIPTIVE') DEFAULT NULL;
+
+ALTER TABLE quiz_attempts
+ADD COLUMN auto_submitted BOOLEAN NOT NULL DEFAULT FALSE;
 
 ALTER TABLE questions 
 ADD CONSTRAINT FK_questions_subject FOREIGN KEY (subject_id) REFERENCES subjects(id);
