@@ -12,21 +12,22 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class StudentAnswer {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "quiz_attempt_id", nullable = false)
     @JsonIgnoreProperties({"studentAnswers"})
     private QuizAttempt quizAttempt;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "question_id", nullable = false)
     @JsonIgnoreProperties({"subject", "topic"})
     private Question question;
 
-    private Integer selectedOption; // 1, 2, 3, or 4
+    private Integer selectedOption;
 
     @Builder.Default
     @Column(nullable = false)
@@ -34,5 +35,12 @@ public class StudentAnswer {
 
     @Builder.Default
     @Column(nullable = false)
-    private Boolean attempted = false;
+    private Boolean attempted = false;  // ✅ THIS WAS MISSING
+
+    public void evaluate() {
+        if (this.selectedOption != null && this.question != null) {
+            this.attempted = true;
+            this.isCorrect = this.selectedOption.equals(this.question.getCorrectOption());
+        }
+    }
 }

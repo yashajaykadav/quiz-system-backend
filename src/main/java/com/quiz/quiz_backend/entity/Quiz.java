@@ -7,15 +7,21 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
-@Builder
 @Entity
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "quizzes")
+@Builder
+@Table(name = "quizzes", indexes = {
+        @Index(name = "idx_quiz_subject", columnList = "subject_id"),
+        @Index(name = "idx_quiz_topic", columnList = "topic_id"),
+        @Index(name = "idx_quiz_status", columnList = "status"),
+        @Index(name = "idx_quiz_scheduled_date", columnList = "scheduledDate")
+})
 public class Quiz {
 
     @Id
@@ -25,22 +31,28 @@ public class Quiz {
     @Column(nullable = false)
     private String title;
 
+    @Column(columnDefinition = "TEXT")
     private String description;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "subject_id", nullable = false)
-    @JsonIgnoreProperties({ "topics", "createdBy" })
+    @JsonIgnoreProperties({"topics", "createdBy"})
     private Subject subject;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "topic_id", nullable = false)
-    @JsonIgnoreProperties({ "questions", "subject" })
+    @JsonIgnoreProperties({"questions", "subject"})
     private Topic topic;
 
-    @ManyToMany
-    @JoinTable(name = "quiz_questions", joinColumns = @JoinColumn(name = "quiz_id"), inverseJoinColumns = @JoinColumn(name = "question_id"))
-    @JsonIgnoreProperties({ "subject", "topic" })
-    private List<Question> questions;
+    @Builder.Default
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "quiz_questions",
+            joinColumns = @JoinColumn(name = "quiz_id"),
+            inverseJoinColumns = @JoinColumn(name = "question_id")
+    )
+    @JsonIgnoreProperties({"subject", "topic"})
+    private List<Question> questions = new ArrayList<>();
 
     @Column(nullable = false)
     private Integer durationMinutes;
@@ -51,24 +63,40 @@ public class Quiz {
     @Column(nullable = false)
     private Integer totalMarks;
 
-    // ✅ NEW
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     @Builder.Default
-    @JdbcTypeCode(SqlTypes.VARCHAR) // Add this!
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     private QuizStatus status = QuizStatus.SCHEDULED;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")
-    @JsonIgnoreProperties({ "password", "createdAt", "lastLogin" })
+    @JsonIgnoreProperties({"password", "createdAt", "lastLogin"})
     private User createdBy;
 
     @Builder.Default
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    // ✅ HELPER
+    @PrePersist
+    protected void onCreate() {
+        if (this.createdAt == null) {
+            this.createdAt = LocalDateTime.now();
+        }
+    }
+
+    /**
+     * Returns the end time of this quiz.
+     */
     public LocalDateTime getEndTime() {
         return scheduledDate.plusMinutes(durationMinutes);
+    }
+
+    /**
+     * Checks if the quiz window is currently active.
+     */
+    public boolean isCurrentlyActive() {
+        LocalDateTime now = LocalDateTime.now();
+        return now.isAfter(scheduledDate) && now.isBefore(getEndTime());
     }
 }

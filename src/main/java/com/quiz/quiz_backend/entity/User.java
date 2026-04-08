@@ -10,16 +10,16 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @AllArgsConstructor
+@NoArgsConstructor
 @Builder
 @Table(name = "users")
-@NoArgsConstructor
 public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true,nullable = false)
+    @Column(unique = true, nullable = false)
     private String username;
 
     @JsonIgnore
@@ -30,20 +30,26 @@ public class User {
     private String fullName;
 
     @Column(unique = true, nullable = false)
-    private String email;
+    private String email;  // ✅ ADDED
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private Role role;
 
     @Builder.Default
     @Column(nullable = false)
-    private Boolean active = true;
+    private Boolean active = true;  // ✅ ADDED
 
     @Builder.Default
-    @Column(nullable = false,updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt = LocalDateTime.now();  // ✅ ADDED
 
-    private LocalDateTime lastLogin;
+    private LocalDateTime lastLogin;  // ✅ ADDED
 
+    @PrePersist
+    protected void onCreate() {
+        if (this.createdAt == null) {
+            this.createdAt = LocalDateTime.now();
+        }
+    }
 }

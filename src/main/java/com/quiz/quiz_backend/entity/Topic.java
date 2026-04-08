@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -16,6 +17,7 @@ import java.util.List;
 @Builder
 @Table(name = "topics")
 public class Topic {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -23,18 +25,27 @@ public class Topic {
     @Column(nullable = false)
     private String name;
 
+    @Column(columnDefinition = "TEXT")  // ✅ ADDED
     private String description;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "subject_id", nullable = false)
     @JsonIgnoreProperties({"topics", "createdBy"})
     private Subject subject;
 
     @JsonIgnore
-    @OneToMany(mappedBy = "topic", cascade = CascadeType.ALL)
-    private List<Question> questions;
-
     @Builder.Default
+    @OneToMany(mappedBy = "topic", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Question> questions = new ArrayList<>();
+
+    @Builder.Default  // ✅ ADDED
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    @PrePersist
+    protected void onCreate() {
+        if (this.createdAt == null) {
+            this.createdAt = LocalDateTime.now();
+        }
+    }
 }

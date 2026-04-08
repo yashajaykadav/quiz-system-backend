@@ -4,14 +4,24 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
-import java.time.LocalDateTime;
-import java.util.List;
-
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
-@Table(name = "quiz_attempts")
+@Table(name = "quiz_attempts", indexes = {
+        @Index(name = "idx_attempt_quiz", columnList = "quiz_id"),
+        @Index(name = "idx_attempt_student", columnList = "student_id"),
+        @Index(name = "idx_attempt_status", columnList = "status")
+}, uniqueConstraints = {
+        @UniqueConstraint(
+                name = "uk_quiz_student",
+                columnNames = {"quiz_id", "student_id"}
+        )
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -23,20 +33,19 @@ public class QuizAttempt {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "quiz_id", nullable = false)
-    @JsonIgnoreProperties({ "createdBy" })
+    @JsonIgnoreProperties({"createdBy", "questions"})
     private Quiz quiz;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "student_id", nullable = false)
-    @JsonIgnoreProperties({ "password", "createdAt", "lastLogin" })
+    @JsonIgnoreProperties({"password", "createdAt", "lastLogin"})
     private User student;
 
     @Column(nullable = false)
     private LocalDateTime startTime;
 
-    // ✅ renamed
     private LocalDateTime submittedAt;
 
     @Column(nullable = false)
@@ -52,13 +61,14 @@ public class QuizAttempt {
 
     @Builder.Default
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false , length = 20)
-    @JdbcTypeCode(SqlTypes.VARCHAR) // Add this!
+    @Column(nullable = false, length = 20)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     private AttemptStatus status = AttemptStatus.IN_PROGRESS;
 
     @JsonIgnore
-    @OneToMany(mappedBy = "quizAttempt", cascade = CascadeType.ALL)
-    private List<StudentAnswer> studentAnswers;
+    @Builder.Default
+    @OneToMany(mappedBy = "quizAttempt", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<StudentAnswer> studentAnswers = new ArrayList<>();
 
     @Builder.Default
     @Column(nullable = false)
@@ -68,17 +78,38 @@ public class QuizAttempt {
     @Column(nullable = false)
     private Integer warningCount = 0;
 
-    // ✅ helpers
+    /**
+     * Whether the quiz time window has passed.
+     */
     public boolean isExpired() {
+        if (quiz == null || quiz.getScheduledDate() == null || quiz.getDurationMinutes() == null) {
+            return false;
+        }
         return LocalDateTime.now()
                 .isAfter(quiz.getScheduledDate().plusMinutes(quiz.getDurationMinutes()));
     }
 
+    /**
+     * Whether the quiz is currently within its active time window.
+     */
     public boolean isActive() {
+        if (quiz == null || quiz.getScheduledDate() == null || quiz.getDurationMinutes() == null) {
+            return false;
+        }
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime start = quiz.getScheduledDate();
         LocalDateTime end = start.plusMinutes(quiz.getDurationMinutes());
-
         return now.isAfter(start) && now.isBefore(end);
+    }
+
+    /**
+     * Calculates and sets the percentage based on obtained and total marks.
+     */
+    public void calculatePercentage() {
+        if (this.totalMarks != null && this.totalMarks > 0) {
+            this.percentage = (this.obtainedMarks * 100.0) / this.totalMarks;
+        } else {
+            this.percentage = 0.0;
+        }
     }
 }
