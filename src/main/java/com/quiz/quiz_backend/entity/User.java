@@ -3,6 +3,8 @@ package com.quiz.quiz_backend.entity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 
@@ -34,6 +36,7 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
+    @JdbcTypeCode(SqlTypes.VARCHAR)  // ✅ THIS LINE WAS MISSING — FIXES THE ERROR
     private Role role;
 
     @Builder.Default
