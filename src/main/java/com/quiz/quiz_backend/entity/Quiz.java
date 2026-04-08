@@ -3,6 +3,8 @@ package com.quiz.quiz_backend.entity;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -53,7 +55,7 @@ public class Quiz {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
-    @JdbcTypeCode(SqlType.VARCHAR)
+    @JdbcTypeCode(SqlTypes.VARCHAR) // Add this!
     private QuizStatus status = QuizStatus.SCHEDULED;
 
     @ManyToOne
