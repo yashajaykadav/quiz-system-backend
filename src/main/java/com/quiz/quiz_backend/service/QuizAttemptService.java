@@ -37,8 +37,7 @@ public class QuizAttemptService {
 
         for (QuizAttempt existing : existingAttempts) {
             if (existing.getStatus() == AttemptStatus.IN_PROGRESS) {
-                // Resume the half-finished quiz
-                return existing;
+                return existing; // Resume
             }
             if (existing.getStatus() == AttemptStatus.COMPLETED) {
                 throw new RuntimeException("Quiz already completed. Multiple attempts are not allowed.");
@@ -50,11 +49,13 @@ public class QuizAttemptService {
             throw new RuntimeException("Quiz not available today");
         }
 
+        // ✅ FIXED: Added .totalMarks(quiz.getTotalMarks()) to the builder
         QuizAttempt attempt = QuizAttempt.builder()
                 .quiz(quiz)
                 .student(student)
                 .startTime(LocalDateTime.now())
                 .status(AttemptStatus.IN_PROGRESS)
+                .totalMarks(quiz.getTotalMarks()) // <--- This line fixes the "Column cannot be null" error
                 .studentAnswers(new ArrayList<>())
                 .build();
 
@@ -94,7 +95,12 @@ public class QuizAttemptService {
 
             attempt.setSubmittedAt(LocalDateTime.now());
             attempt.setObtainedMarks(obtainedMarks);
-            attempt.setPercentage((obtainedMarks * 100.0) / attempt.getQuiz().getTotalMarks());
+            
+            // ✅ IMPROVED: Using attempt's own totalMarks
+            if (attempt.getTotalMarks() != null && attempt.getTotalMarks() > 0) {
+                attempt.setPercentage((obtainedMarks * 100.0) / attempt.getTotalMarks());
+            }
+            
             attempt.setStatus(AttemptStatus.COMPLETED);
             attempt.setAutoSubmitted(true);
         }
@@ -142,7 +148,14 @@ public class QuizAttemptService {
 
         attempt.setSubmittedAt(LocalDateTime.now());
         attempt.setObtainedMarks(obtainedMarks);
-        attempt.setPercentage((obtainedMarks * 100.0) / attempt.getQuiz().getTotalMarks());
+
+        // ✅ IMPROVED: Using attempt's own totalMarks
+        if (attempt.getTotalMarks() != null && attempt.getTotalMarks() > 0) {
+            attempt.setPercentage((obtainedMarks * 100.0) / attempt.getTotalMarks());
+        } else {
+            attempt.setPercentage(0.0);
+        }
+
         attempt.setStatus(AttemptStatus.COMPLETED);
 
         return quizAttemptRepository.save(attempt);
