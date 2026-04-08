@@ -31,12 +31,13 @@ CREATE TABLE questions (
     question_text TEXT NOT NULL,
     code_snippet TEXT,
     type VARCHAR(20) DEFAULT 'OBJECTIVE',
-    option1 VARCHAR(255),
-    option2 VARCHAR(255),
-    option3 VARCHAR(255),
-    option4 VARCHAR(255),
-    correct_option INT,
+    option1 VARCHAR(255) NOT NULL,
+    option2 VARCHAR(255) NOT NULL,
+    option3 VARCHAR(255) NOT NULL,
+    option4 VARCHAR(255) NOT NULL,
+    correct_option INT NOT NULL,
     marks INT DEFAULT 1,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, -- Added missing column
     FOREIGN KEY (subject_id) REFERENCES subjects(id),
     FOREIGN KEY (topic_id) REFERENCES topics(id)
 );

@@ -6,6 +6,9 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 @Entity
 @Getter
 @Setter
@@ -26,6 +29,8 @@ public class Question {
     private String codeSnippet;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR) // This fixes the "expecting enum" error
+    @Column(length = 20)
     private QuestionType type;
 
     @Column(nullable = false)
