@@ -53,6 +53,7 @@ public class Quiz {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
+    @JdbcTypeCode(SqlType.VARCHAR)
     private QuizStatus status = QuizStatus.SCHEDULED;
 
     @ManyToOne

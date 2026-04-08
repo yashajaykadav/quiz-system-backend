@@ -7,6 +7,9 @@ import lombok.*;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 @Entity
 @Table(name = "quiz_attempts")
 @Getter
@@ -49,7 +52,8 @@ public class QuizAttempt {
 
     @Builder.Default
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false , length = 20)
+    @JdbcTypeCode(SqlTypes.VARCHAR) // Add this!
     private AttemptStatus status = AttemptStatus.IN_PROGRESS;
 
     @JsonIgnore
