@@ -1,84 +1,97 @@
--- 1. Users
+-- 1. USERS
 CREATE TABLE users (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     full_name VARCHAR(100),
-    role ENUM('ADMIN', 'STUDENT') NOT NULL,
+    role VARCHAR(20) NOT NULL,
     last_login DATETIME,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- 2. Subjects & Topics
+-- 2. SUBJECTS
 CREATE TABLE subjects (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE
 );
 
+-- 3. TOPICS
 CREATE TABLE topics (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    subject_id BIGINT,
+    subject_id BIGINT NOT NULL,
     name VARCHAR(100) NOT NULL,
     FOREIGN KEY (subject_id) REFERENCES subjects(id)
 );
 
--- 3. Questions (Bank)
+-- 4. QUESTIONS
 CREATE TABLE questions (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    topic_id BIGINT,
-    content TEXT NOT NULL,
+    subject_id BIGINT NOT NULL,
+    topic_id BIGINT NOT NULL,
+    question_text TEXT NOT NULL,
+    code_snippet TEXT,
     type VARCHAR(20) DEFAULT 'OBJECTIVE',
-    option_a VARCHAR(255),
-    option_b VARCHAR(255),
-    option_c VARCHAR(255),
-    option_d VARCHAR(255),
-    correct_answer VARCHAR(255),
+    option1 VARCHAR(255),
+    option2 VARCHAR(255),
+    option3 VARCHAR(255),
+    option4 VARCHAR(255),
+    correct_option INT,
     marks INT DEFAULT 1,
-    FOREIGN KEY (topic_id) REFERENCES topics(id)
-);
-
--- 4. Quizzes (Header)
-CREATE TABLE quizzes (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    subject_id BIGINT,
-    topic_id BIGINT,
-    title VARCHAR(150) NOT NULL,
-    duration_minutes INT NOT NULL,
-    scheduled_date DATE NOT NULL,
     FOREIGN KEY (subject_id) REFERENCES subjects(id),
     FOREIGN KEY (topic_id) REFERENCES topics(id)
 );
 
--- 5. Quiz-Question Mapping (This is your quiz_questions table)
+-- 5. QUIZZES
+CREATE TABLE quizzes (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(150) NOT NULL,
+    description TEXT,
+    subject_id BIGINT NOT NULL,
+    topic_id BIGINT NOT NULL,
+    duration_minutes INT NOT NULL,
+    scheduled_date DATETIME NOT NULL, -- ✅ FIXED
+    total_marks INT NOT NULL,
+    status VARCHAR(20) DEFAULT 'SCHEDULED',
+    created_by BIGINT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (subject_id) REFERENCES subjects(id),
+    FOREIGN KEY (topic_id) REFERENCES topics(id),
+    FOREIGN KEY (created_by) REFERENCES users(id)
+);
+
+-- 6. QUIZ QUESTIONS (JOIN TABLE)
 CREATE TABLE quiz_questions (
     quiz_id BIGINT,
     question_id BIGINT,
     PRIMARY KEY (quiz_id, question_id),
-    FOREIGN KEY (quiz_id) REFERENCES quizzes(id),
-    FOREIGN KEY (question_id) REFERENCES questions(id)
+    FOREIGN KEY (quiz_id) REFERENCES quizzes(id) ON DELETE CASCADE,
+    FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE
 );
 
--- 6. Quiz Attempts (This tracks the overall score)
+-- 7. QUIZ ATTEMPTS
 CREATE TABLE quiz_attempts (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    user_id BIGINT,
-    quiz_id BIGINT,
-    marks_obtained INT,
-    total_marks INT,
-    percentage DOUBLE,
-    status VARCHAR(20) DEFAULT 'COMPLETED',
-    attempt_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (quiz_id) REFERENCES quizzes(id)
+    quiz_id BIGINT NOT NULL,
+    student_id BIGINT NOT NULL,
+    start_time DATETIME NOT NULL,
+    submitted_at DATETIME,
+    total_marks INT NOT NULL,
+    obtained_marks INT DEFAULT 0,
+    percentage DOUBLE DEFAULT 0,
+    status VARCHAR(20) DEFAULT 'IN_PROGRESS',
+    auto_submitted BOOLEAN DEFAULT FALSE,
+    warning_count INT DEFAULT 0,
+    FOREIGN KEY (quiz_id) REFERENCES quizzes(id),
+    FOREIGN KEY (student_id) REFERENCES users(id)
 );
 
--- 7. Student Answers (Individual responses for each question)
+-- 8. STUDENT ANSWERS
 CREATE TABLE student_answers (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    attempt_id BIGINT,
-    question_id BIGINT,
-    selected_option VARCHAR(255),
+    quiz_attempt_id BIGINT NOT NULL,
+    question_id BIGINT NOT NULL,
+    selected_option INT,
     is_correct BOOLEAN,
-    FOREIGN KEY (attempt_id) REFERENCES quiz_attempts(id),
+    FOREIGN KEY (quiz_attempt_id) REFERENCES quiz_attempts(id) ON DELETE CASCADE,
     FOREIGN KEY (question_id) REFERENCES questions(id)
 );
