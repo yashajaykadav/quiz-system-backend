@@ -2,6 +2,7 @@ package com.quiz.quiz_backend.controller;
 
 import com.quiz.quiz_backend.dto.OverallPerformanceResponse;
 import com.quiz.quiz_backend.dto.QuizResponse;
+import com.quiz.quiz_backend.dto.StudentAnswerResponse;
 import com.quiz.quiz_backend.dto.SubmitAnswerRequest;
 import com.quiz.quiz_backend.entity.QuizAttempt;
 import com.quiz.quiz_backend.entity.StudentAnswer;
@@ -51,10 +52,10 @@ public class StudentController {
     }
 
     // Get All Answers for Navigation
-    @GetMapping("/attempts/{attemptId}/answers")
-    public ResponseEntity<List<StudentAnswer>> getAttemptAnswers(@PathVariable Long attemptId) {
-        return ResponseEntity.ok(quizAttemptService.getAttemptAnswers(attemptId));
-    }
+  @GetMapping("/attempts/{attemptId}/answers")
+public ResponseEntity<List<StudentAnswerResponse>> getAttemptAnswers(@PathVariable Long attemptId) {
+    return ResponseEntity.ok(quizAttemptService.getAttemptAnswers(attemptId));
+}
 
     // Record Tab-Switch Warning
     @PostMapping("/attempts/{attemptId}/warning")

@@ -1,5 +1,6 @@
 package com.quiz.quiz_backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
@@ -11,16 +12,17 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"}) 
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class StudentAnswer {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // 🔥 FIX: Break circular reference completely
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "quiz_attempt_id", nullable = false)
-    @JsonIgnoreProperties({"studentAnswers"})
+    @JsonIgnore
     private QuizAttempt quizAttempt;
 
     @ManyToOne(fetch = FetchType.EAGER)
@@ -36,7 +38,7 @@ public class StudentAnswer {
 
     @Builder.Default
     @Column(nullable = false)
-    private Boolean attempted = false;  // ✅ THIS WAS MISSING
+    private Boolean attempted = false;
 
     public void evaluate() {
         if (this.selectedOption != null && this.question != null) {

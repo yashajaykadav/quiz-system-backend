@@ -1,5 +1,6 @@
 package com.quiz.quiz_backend.service;
 
+import com.quiz.quiz_backend.dto.StudentAnswerResponse;
 import com.quiz.quiz_backend.dto.SubmitAnswerRequest;
 import com.quiz.quiz_backend.entity.*;
 import com.quiz.quiz_backend.repository.*;
@@ -166,7 +167,18 @@ public class QuizAttemptService {
                 .orElseThrow(() -> new RuntimeException("Attempt not found"));
     }
 
-    public List<StudentAnswer> getAttemptAnswers(Long attemptId) {
-        return studentAnswerRepository.findByQuizAttemptId(attemptId);
-    }
+    public List<StudentAnswerResponse> getAttemptAnswers(Long attemptId) {
+    List<StudentAnswer> answers = studentAnswerRepository.findByQuizAttemptId(attemptId);
+
+    return answers.stream().map(answer -> StudentAnswerResponse.builder()
+            .id(answer.getId())
+            .questionId(answer.getQuestion().getId())
+            .questionText(answer.getQuestion().getQuestionText())
+            .selectedOption(answer.getSelectedOption())
+            .isCorrect(answer.getIsCorrect())
+            .attempted(answer.getAttempted())
+            .build()
+    ).toList();
+}
+  
 }
