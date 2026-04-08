@@ -16,6 +16,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"}) 
 @Table(name = "quizzes", indexes = {
         @Index(name = "idx_quiz_subject", columnList = "subject_id"),
         @Index(name = "idx_quiz_topic", columnList = "topic_id"),
