@@ -1,6 +1,8 @@
 package com.quiz.quiz_backend.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -15,6 +17,7 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 @Table(name = "subjects")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"}) 
 public class Subject {
 
     @Id

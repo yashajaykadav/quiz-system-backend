@@ -16,6 +16,8 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 @Table(name = "topics")
+// This specific line fixes the ByteBuddyInterceptor 500 error
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"}) 
 public class Topic {
 
     @Id
@@ -25,12 +27,12 @@ public class Topic {
     @Column(nullable = false)
     private String name;
 
-    @Column(columnDefinition = "TEXT")  // ✅ ADDED
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "subject_id", nullable = false)
-    @JsonIgnoreProperties({"topics", "createdBy"})
+    @JsonIgnoreProperties({"topics", "createdBy", "hibernateLazyInitializer", "handler"})
     private Subject subject;
 
     @JsonIgnore
@@ -38,7 +40,7 @@ public class Topic {
     @OneToMany(mappedBy = "topic", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Question> questions = new ArrayList<>();
 
-    @Builder.Default  // ✅ ADDED
+    @Builder.Default
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
