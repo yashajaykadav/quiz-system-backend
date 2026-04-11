@@ -1,0 +1,36 @@
+-- ============================================================
+-- V2__fix_duplicate_attempts.sql
+-- Cleans up orphan IN_PROGRESS rows for quiz+student combos
+-- that already have a COMPLETED attempt, then adds a unique
+-- constraint so this can never happen again.
+-- ============================================================
+
+-- Step 1: Delete orphan IN_PROGRESS attempts where the same
+--         student already has a COMPLETED attempt for that quiz.
+DELETE FROM student_answers
+WHERE quiz_attempt_id IN (
+    SELECT id FROM quiz_attempts orphan
+    WHERE orphan.status = 'IN_PROGRESS'
+      AND EXISTS (
+          SELECT 1 FROM quiz_attempts completed
+          WHERE completed.quiz_id   = orphan.quiz_id
+            AND completed.student_id = orphan.student_id
+            AND completed.status    = 'COMPLETED'
+      )
+);
+
+DELETE FROM quiz_attempts
+WHERE status = 'IN_PROGRESS'
+  AND EXISTS (
+      SELECT 1 FROM quiz_attempts completed
+      WHERE completed.quiz_id   = quiz_attempts.quiz_id
+        AND completed.student_id = quiz_attempts.student_id
+        AND completed.status    = 'COMPLETED'
+  );
+
+-- Step 2: Add a unique constraint — one attempt per (quiz, student, status).
+--         This prevents the database from ever holding two rows with the same
+--         quiz_id + student_id + status combination.
+ALTER TABLE quiz_attempts
+    ADD CONSTRAINT UQ_attempt_quiz_student_status
+        UNIQUE (quiz_id, student_id, status);
