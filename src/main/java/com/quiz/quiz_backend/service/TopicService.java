@@ -1,12 +1,14 @@
 package com.quiz.quiz_backend.service;
 
 import com.quiz.quiz_backend.dto.TopicRequest;
+import com.quiz.quiz_backend.dto.TopicResponse;
 import com.quiz.quiz_backend.entity.Subject;
 import com.quiz.quiz_backend.entity.Topic;
 import com.quiz.quiz_backend.repository.SubjectRepository;
 import com.quiz.quiz_backend.repository.TopicRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -17,9 +19,10 @@ public class TopicService {
     private final TopicRepository topicRepository;
     private final SubjectRepository subjectRepository;
 
-    public Topic createTopic(TopicRequest request){
+    @Transactional
+    public TopicResponse createTopic(TopicRequest request) {
         Subject subject = subjectRepository.findById(request.getSubjectId())
-                .orElseThrow(()-> new RuntimeException("Subject Not Found"));
+                .orElseThrow(() -> new RuntimeException("Subject Not Found"));
 
         Topic topic = Topic.builder()
                 .name(request.getName())
@@ -27,16 +30,37 @@ public class TopicService {
                 .subject(subject)
                 .build();
 
-        return topicRepository.save(topic);
+        topic = topicRepository.save(topic);
+        return toTopicResponse(topic);
     }
 
-    public List<Topic> getAllTopics(){
-        return topicRepository.findAll();
+    @Transactional(readOnly = true)
+    public List<TopicResponse> getAllTopics() {
+        return topicRepository.findAll().stream()
+                .map(this::toTopicResponse)
+                .toList();
     }
-    public List<Topic>getTopicsBySubject(Long subjectId){
-        return  topicRepository.findBySubjectId(subjectId);
+
+    @Transactional(readOnly = true)
+    public List<TopicResponse> getTopicsBySubject(Long subjectId) {
+        return topicRepository.findBySubjectId(subjectId).stream()
+                .map(this::toTopicResponse)
+                .toList();
     }
-    public void deleteTopic(Long id){
+
+    public void deleteTopic(Long id) {
         topicRepository.deleteById(id);
+    }
+
+    private TopicResponse toTopicResponse(Topic t) {
+        TopicResponse r = new TopicResponse();
+        r.setId(t.getId());
+        r.setName(t.getName());
+        r.setDescription(t.getDescription());
+        if (t.getSubject() != null) {
+            r.setSubjectId(t.getSubject().getId());
+            r.setSubjectName(t.getSubject().getName());
+        }
+        return r;
     }
 }

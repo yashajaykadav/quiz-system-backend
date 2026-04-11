@@ -9,6 +9,7 @@ import com.quiz.quiz_backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -21,6 +22,7 @@ public class StudentResultService {
         private final QuizAttemptRepository quizAttemptRepository;
         private final UserRepository userRepository;
 
+        @Transactional(readOnly = true)
         public OverallPerformanceResponse getOverallPerformance() {
                 String username = SecurityContextHolder.getContext().getAuthentication().getName();
                 User student = userRepository.findByUsername(username)
@@ -65,6 +67,7 @@ public class StudentResultService {
                 return response;
         }
 
+        @Transactional(readOnly = true)
         public OverallPerformanceResponse getAllStudentResultsForAdmin() {
 
                 List<QuizAttempt> allAttempts = quizAttemptRepository.findAll();

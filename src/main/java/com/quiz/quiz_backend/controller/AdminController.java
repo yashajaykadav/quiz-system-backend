@@ -1,29 +1,15 @@
 package com.quiz.quiz_backend.controller;
 
-import com.quiz.quiz_backend.dto.QuestionRequest;
-import com.quiz.quiz_backend.dto.QuizRequest;
-import com.quiz.quiz_backend.dto.StudentRequest;
-import com.quiz.quiz_backend.dto.StudentResultResponse;
-import com.quiz.quiz_backend.dto.SubjectRequest;
-import com.quiz.quiz_backend.dto.TopicRequest;
-import com.quiz.quiz_backend.entity.Question;
-import com.quiz.quiz_backend.entity.Quiz;
-import com.quiz.quiz_backend.entity.Subject;
-import com.quiz.quiz_backend.entity.Topic;
-import com.quiz.quiz_backend.entity.User;
-import com.quiz.quiz_backend.service.QuestionService;
-import com.quiz.quiz_backend.service.QuizService;
-import com.quiz.quiz_backend.service.StudentResultService;
-import com.quiz.quiz_backend.service.SubjectService;
-import com.quiz.quiz_backend.service.TopicService;
-import com.quiz.quiz_backend.service.UserService;
-
+import com.quiz.quiz_backend.dto.*;
+import com.quiz.quiz_backend.entity.*;
+import com.quiz.quiz_backend.service.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -37,6 +23,7 @@ public class AdminController {
     private final UserService userService;
     private final StudentResultService studentResultService;
 
+    // ── Students ──────────────────────────────────────────────────────────
     @GetMapping("/students")
     public ResponseEntity<List<User>> getAllStudents() {
         return ResponseEntity.ok(userService.getStudents());
@@ -47,7 +34,17 @@ public class AdminController {
         return ResponseEntity.ok(userService.saveStudent(request));
     }
 
-    // Subject Management
+    @PatchMapping("/students/{id}/reset-password")
+    public ResponseEntity<User> adminResetPassword(@PathVariable Long id, @RequestBody String newPassword) {
+        return ResponseEntity.ok(userService.ReseteStudentPassword(id, newPassword));
+    }
+
+    @PatchMapping("/students/{id}/toggle-status")
+    public ResponseEntity<User> toggleStatus(@PathVariable Long id) {
+        return ResponseEntity.ok(userService.togglUserStatus(id));
+    }
+
+    // ── Subjects ──────────────────────────────────────────────────────────
     @PostMapping("/subjects")
     public ResponseEntity<Subject> createSubject(@RequestBody SubjectRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(subjectService.createSubject(request));
@@ -64,19 +61,19 @@ public class AdminController {
         return ResponseEntity.ok("Subject deleted successfully");
     }
 
-    // Topic Management
+    // ── Topics ────────────────────────────────────────────────────────────
     @PostMapping("/topics")
-    public ResponseEntity<Topic> createTopic(@RequestBody TopicRequest request) {
+    public ResponseEntity<TopicResponse> createTopic(@RequestBody TopicRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(topicService.createTopic(request));
     }
 
     @GetMapping("/topics")
-    public ResponseEntity<List<Topic>> getAllTopics() {
+    public ResponseEntity<List<TopicResponse>> getAllTopics() {
         return ResponseEntity.ok(topicService.getAllTopics());
     }
 
     @GetMapping("/topics/subject/{subjectId}")
-    public ResponseEntity<List<Topic>> getTopicsBySubject(@PathVariable Long subjectId) {
+    public ResponseEntity<List<TopicResponse>> getTopicsBySubject(@PathVariable Long subjectId) {
         return ResponseEntity.ok(topicService.getTopicsBySubject(subjectId));
     }
 
@@ -86,19 +83,19 @@ public class AdminController {
         return ResponseEntity.ok("Topic deleted successfully");
     }
 
-    // Question Management
+    // ── Questions ─────────────────────────────────────────────────────────
     @PostMapping("/questions")
-    public ResponseEntity<Question> createQuestion(@RequestBody QuestionRequest request) {
+    public ResponseEntity<QuestionResponse> createQuestion(@RequestBody QuestionRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(questionService.createQuestion(request));
     }
 
     @GetMapping("/questions")
-    public ResponseEntity<List<Question>> getAllQuestions() {
+    public ResponseEntity<List<QuestionResponse>> getAllQuestions() {
         return ResponseEntity.ok(questionService.getAllQuestions());
     }
 
     @GetMapping("/questions/filter")
-    public ResponseEntity<List<Question>> getQuestionsBySubjectAndTopic(
+    public ResponseEntity<List<QuestionResponse>> getQuestionsBySubjectAndTopic(
             @RequestParam Long subjectId,
             @RequestParam Long topicId) {
         return ResponseEntity.ok(questionService.getQuestionBySubjectAndTopic(subjectId, topicId));
@@ -110,32 +107,20 @@ public class AdminController {
         return ResponseEntity.ok("Question deleted successfully");
     }
 
-    // Quiz Management
+    // ── Quizzes ───────────────────────────────────────────────────────────
     @PostMapping("/quizzes")
-    public ResponseEntity<Quiz> createQuiz(@RequestBody QuizRequest request) {
+    public ResponseEntity<QuizResponse> createQuiz(@RequestBody QuizRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(quizService.createQuiz(request));
     }
 
     @GetMapping("/quizzes")
-    public ResponseEntity<List<Quiz>> getAllQuizzes() {
+    public ResponseEntity<List<QuizResponse>> getAllQuizzes() {
         return ResponseEntity.ok(quizService.getAllQuizzes());
     }
 
+    // ── Results ───────────────────────────────────────────────────────────
     @GetMapping("/results/all")
     public ResponseEntity<List<StudentResultResponse>> getAllResults() {
         return ResponseEntity.ok(studentResultService.getAllStudentResultsForAdmin().getResults());
-
     }
-
-    @PatchMapping("/students/{id}/reset-password")
-    public ResponseEntity<User> adminResetPassword(@PathVariable Long id, @RequestBody String newPassword) {
-        return ResponseEntity.ok(userService.ReseteStudentPassword(id, newPassword));
-
-    }
-
-    @PatchMapping("/students/{id}/toggle-status")
-    public ResponseEntity<User> toggleStatus(@PathVariable Long id) {
-        return ResponseEntity.ok(userService.togglUserStatus(id));
-    }
-
 }

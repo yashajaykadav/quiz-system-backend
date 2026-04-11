@@ -1,5 +1,6 @@
 package com.quiz.quiz_backend.service;
 
+import com.quiz.quiz_backend.dto.QuizAttemptResponse;
 import com.quiz.quiz_backend.dto.StudentAnswerResponse;
 import com.quiz.quiz_backend.dto.SubmitAnswerRequest;
 import com.quiz.quiz_backend.entity.*;
@@ -13,6 +14,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -25,7 +28,7 @@ public class QuizAttemptService {
     private final QuestionRepository questionRepository;
 
     @Transactional
-    public QuizAttempt startQuiz(Long quizId) {
+    public QuizAttemptResponse startQuiz(Long quizId) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User student = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
@@ -33,36 +36,31 @@ public class QuizAttemptService {
         Quiz quiz = quizRepository.findById(quizId)
                 .orElseThrow(() -> new RuntimeException("Quiz not found"));
 
-        // Check for existing attempts
-        List<QuizAttempt> existingAttempts = quizAttemptRepository.findByQuizIdAndStudentId(quizId, student.getId());
-
-        for (QuizAttempt existing : existingAttempts) {
-            if (existing.getStatus() == AttemptStatus.IN_PROGRESS) {
-                return existing; // Resume
-            }
-            if (existing.getStatus() == AttemptStatus.COMPLETED) {
-                throw new RuntimeException("Quiz already completed. Multiple attempts are not allowed.");
-            }
-        }
-
-        // Check if quiz is scheduled for today
         if (!quiz.getScheduledDate().toLocalDate().equals(LocalDate.now())) {
             throw new RuntimeException("Quiz not available today");
         }
 
-        // ✅ FIXED: Added .totalMarks(quiz.getTotalMarks()) to the builder
+        Optional<QuizAttempt> completed = quizAttemptRepository.findByQuizIdAndStudentIdAndStatus(quizId, student.getId(), AttemptStatus.COMPLETED);
+        if (completed.isPresent()) {
+            throw new RuntimeException("Quiz already completed. Multiple attempts are not allowed.");
+        }
+
+        Optional<QuizAttempt> inProgress = quizAttemptRepository.findByQuizIdAndStudentIdAndStatus(quizId, student.getId(), AttemptStatus.IN_PROGRESS);
+        if (inProgress.isPresent()) {
+            return toResponse(inProgress.get());
+        }
+
         QuizAttempt attempt = QuizAttempt.builder()
                 .quiz(quiz)
                 .student(student)
                 .startTime(LocalDateTime.now())
                 .status(AttemptStatus.IN_PROGRESS)
-                .totalMarks(quiz.getTotalMarks()) // <--- This line fixes the "Column cannot be null" error
+                .totalMarks(quiz.getTotalMarks())
                 .studentAnswers(new ArrayList<>())
                 .build();
 
         QuizAttempt savedAttempt = quizAttemptRepository.save(attempt);
 
-        // Initialize student answers
         for (Question question : quiz.getQuestions()) {
             StudentAnswer answer = StudentAnswer.builder()
                     .quizAttempt(savedAttempt)
@@ -73,11 +71,13 @@ public class QuizAttemptService {
             studentAnswerRepository.save(answer);
         }
 
-        return savedAttempt;
+        return toResponse(savedAttempt);
     }
 
     @Transactional
-    public QuizAttempt recordWarning(Long attemptId) {
+    public QuizAttemptResponse recordWarning(Long attemptId) {
+//... (no changes in this block, continuing to end of file to safely replace)
+
         QuizAttempt attempt = quizAttemptRepository.findById(attemptId)
                 .orElseThrow(() -> new RuntimeException("Quiz attempt not found"));
 
@@ -87,26 +87,11 @@ public class QuizAttemptService {
 
         attempt.setWarningCount(attempt.getWarningCount() + 1);
 
-        // Auto-submit after 3 warnings
         if (attempt.getWarningCount() >= 3) {
-            List<StudentAnswer> answers = studentAnswerRepository.findByQuizAttemptId(attemptId);
-            int obtainedMarks = (int) answers.stream()
-                    .filter(StudentAnswer::getIsCorrect)
-                    .count();
-
-            attempt.setSubmittedAt(LocalDateTime.now());
-            attempt.setObtainedMarks(obtainedMarks);
-            
-            // ✅ IMPROVED: Using attempt's own totalMarks
-            if (attempt.getTotalMarks() != null && attempt.getTotalMarks() > 0) {
-                attempt.setPercentage((obtainedMarks * 100.0) / attempt.getTotalMarks());
-            }
-            
-            attempt.setStatus(AttemptStatus.COMPLETED);
-            attempt.setAutoSubmitted(true);
+            submitAttemptLogic(attempt);
         }
 
-        return quizAttemptRepository.save(attempt);
+        return toResponse(quizAttemptRepository.save(attempt));
     }
 
     @Transactional
@@ -133,7 +118,7 @@ public class QuizAttemptService {
     }
 
     @Transactional
-    public QuizAttempt submitQuiz(Long attemptId) {
+    public QuizAttemptResponse submitQuiz(Long attemptId) {
         QuizAttempt attempt = quizAttemptRepository.findById(attemptId)
                 .orElseThrow(() -> new RuntimeException("Quiz attempt not found"));
 
@@ -141,16 +126,48 @@ public class QuizAttemptService {
             throw new RuntimeException("Quiz already completed");
         }
 
-        // Calculate marks
+        submitAttemptLogic(attempt);
+        return toResponse(quizAttemptRepository.save(attempt));
+    }
+
+    public QuizAttemptResponse getAttemptById(Long attemptId) {
+        QuizAttempt attempt = quizAttemptRepository.findById(attemptId)
+                .orElseThrow(() -> new RuntimeException("Attempt not found"));
+        return toResponse(attempt);
+    }
+
+    public List<StudentAnswerResponse> getAttemptAnswers(Long attemptId) {
         List<StudentAnswer> answers = studentAnswerRepository.findByQuizAttemptId(attemptId);
-        int obtainedMarks = (int) answers.stream()
+
+        return answers.stream().map(answer -> StudentAnswerResponse.builder()
+                .id(answer.getId())
+                .questionId(answer.getQuestion().getId())
+                .questionText(answer.getQuestion().getQuestionText())
+                .codeSnippet(answer.getQuestion().getCodeSnippet())
+                .type(answer.getQuestion().getType() != null ? answer.getQuestion().getType().name() : null)
+                .option1(answer.getQuestion().getOption1())
+                .option2(answer.getQuestion().getOption2())
+                .option3(answer.getQuestion().getOption3())
+                .option4(answer.getQuestion().getOption4())
+                .marks(answer.getQuestion().getMarks())
+                .selectedOption(answer.getSelectedOption())
+                .isCorrect(answer.getIsCorrect())
+                .attempted(answer.getAttempted())
+                .build()
+        ).toList();
+    }
+
+    private void submitAttemptLogic(QuizAttempt attempt) {
+        List<StudentAnswer> answers = studentAnswerRepository.findByQuizAttemptId(attempt.getId());
+        
+        int obtainedMarks = answers.stream()
                 .filter(StudentAnswer::getIsCorrect)
-                .count();
+                .mapToInt(ans -> ans.getQuestion().getMarks() != null ? ans.getQuestion().getMarks() : 1)
+                .sum();
 
         attempt.setSubmittedAt(LocalDateTime.now());
         attempt.setObtainedMarks(obtainedMarks);
 
-        // ✅ IMPROVED: Using attempt's own totalMarks
         if (attempt.getTotalMarks() != null && attempt.getTotalMarks() > 0) {
             attempt.setPercentage((obtainedMarks * 100.0) / attempt.getTotalMarks());
         } else {
@@ -158,27 +175,28 @@ public class QuizAttemptService {
         }
 
         attempt.setStatus(AttemptStatus.COMPLETED);
-
-        return quizAttemptRepository.save(attempt);
+        if (attempt.getWarningCount() >= 3) {
+            attempt.setAutoSubmitted(true);
+        }
     }
 
-    public QuizAttempt getAttemptById(Long attemptId) {
-        return quizAttemptRepository.findById(attemptId)
-                .orElseThrow(() -> new RuntimeException("Attempt not found"));
+    private QuizAttemptResponse toResponse(QuizAttempt attempt) {
+        QuizAttemptResponse dto = new QuizAttemptResponse();
+        dto.setId(attempt.getId());
+        dto.setQuizId(attempt.getQuiz().getId());
+        dto.setQuizTitle(attempt.getQuiz().getTitle());
+        dto.setSubjectName(attempt.getQuiz().getSubject().getName());
+        dto.setTopicName(attempt.getQuiz().getTopic().getName());
+        dto.setStartTime(attempt.getStartTime());
+        dto.setEndTime(attempt.getSubmittedAt());
+        dto.setObtainedMarks(attempt.getObtainedMarks());
+        dto.setTotalMarks(attempt.getTotalMarks());
+        dto.setPercentage(attempt.getPercentage());
+        dto.setStatus(attempt.getStatus());
+        dto.setAutoSubmitted(attempt.getAutoSubmitted());
+        dto.setWarningCount(attempt.getWarningCount());
+        dto.setDurationMinutes(attempt.getQuiz().getDurationMinutes());
+        dto.setTotalQuestions(attempt.getQuiz().getQuestions() != null ? attempt.getQuiz().getQuestions().size() : 0);
+        return dto;
     }
-
-    public List<StudentAnswerResponse> getAttemptAnswers(Long attemptId) {
-    List<StudentAnswer> answers = studentAnswerRepository.findByQuizAttemptId(attemptId);
-
-    return answers.stream().map(answer -> StudentAnswerResponse.builder()
-            .id(answer.getId())
-            .questionId(answer.getQuestion().getId())
-            .questionText(answer.getQuestion().getQuestionText())
-            .selectedOption(answer.getSelectedOption())
-            .isCorrect(answer.getIsCorrect())
-            .attempted(answer.getAttempted())
-            .build()
-    ).toList();
-}
-  
 }

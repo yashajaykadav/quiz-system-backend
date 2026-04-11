@@ -1,6 +1,7 @@
 package com.quiz.quiz_backend.service;
 
 import com.quiz.quiz_backend.dto.QuestionRequest;
+import com.quiz.quiz_backend.dto.QuestionResponse;
 import com.quiz.quiz_backend.entity.Question;
 import com.quiz.quiz_backend.entity.Subject;
 import com.quiz.quiz_backend.entity.Topic;
@@ -9,8 +10,10 @@ import com.quiz.quiz_backend.repository.SubjectRepository;
 import com.quiz.quiz_backend.repository.TopicRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -20,7 +23,8 @@ public class QuestionService {
     private final TopicRepository topicRepository;
     private final SubjectRepository subjectRepository;
 
-    public Question createQuestion(QuestionRequest  request){
+    @Transactional
+    public QuestionResponse createQuestion(QuestionRequest request){
         Subject subject = subjectRepository.findById(request.getSubjectId()).
                 orElseThrow(()->new RuntimeException("Subject not found"));
         Topic topic = topicRepository.findById(request.getTopicId()).orElseThrow(()->
@@ -39,16 +43,46 @@ public class QuestionService {
                 .topic(topic)
                 .build();
 
-        return questionRepository.save(question);
+        question = questionRepository.save(question);
+        return toQuestionResponse(question);
     }
 
-    public List<Question> getQuestionBySubjectAndTopic(Long subjectId, Long topicId){
-        return questionRepository.findBySubjectIdAndTopicId(subjectId,topicId);
+    @Transactional(readOnly = true)
+    public List<QuestionResponse> getQuestionBySubjectAndTopic(Long subjectId, Long topicId){
+        return questionRepository.findBySubjectIdAndTopicId(subjectId,topicId)
+                .stream().map(this::toQuestionResponse).collect(Collectors.toList());
     }
-    public List<Question> getAllQuestions(){
-        return questionRepository.findAll();
+
+    @Transactional(readOnly = true)
+    public List<QuestionResponse> getAllQuestions(){
+        return questionRepository.findAll()
+                .stream().map(this::toQuestionResponse).collect(Collectors.toList());
     }
+
     public void deleteQuestion(Long questionId){
         questionRepository.deleteById(questionId);
+    }
+
+    private QuestionResponse toQuestionResponse(Question q) {
+        QuestionResponse r = new QuestionResponse();
+        r.setId(q.getId());
+        r.setQuestionText(q.getQuestionText());
+        r.setCodeSnippet(q.getCodeSnippet());
+        r.setType(q.getType() != null ? q.getType().name() : null);
+        r.setOption1(q.getOption1());
+        r.setOption2(q.getOption2());
+        r.setOption3(q.getOption3());
+        r.setOption4(q.getOption4());
+        r.setCorrectOption(q.getCorrectOption());
+        r.setMarks(q.getMarks());
+        if (q.getSubject() != null) {
+            r.setSubjectId(q.getSubject().getId());
+            r.setSubjectName(q.getSubject().getName());
+        }
+        if (q.getTopic() != null) {
+            r.setTopicId(q.getTopic().getId());
+            r.setTopicName(q.getTopic().getName());
+        }
+        return r;
     }
 }

@@ -1,11 +1,10 @@
 package com.quiz.quiz_backend.controller;
 
 import com.quiz.quiz_backend.dto.OverallPerformanceResponse;
+import com.quiz.quiz_backend.dto.QuizAttemptResponse;
 import com.quiz.quiz_backend.dto.QuizResponse;
 import com.quiz.quiz_backend.dto.StudentAnswerResponse;
 import com.quiz.quiz_backend.dto.SubmitAnswerRequest;
-import com.quiz.quiz_backend.entity.QuizAttempt;
-import com.quiz.quiz_backend.entity.StudentAnswer;
 import com.quiz.quiz_backend.service.QuizAttemptService;
 import com.quiz.quiz_backend.service.QuizService;
 import com.quiz.quiz_backend.service.StudentResultService;
@@ -30,9 +29,9 @@ public class StudentController {
         return ResponseEntity.ok(quizService.getTodayQuizzes());
     }
 
-    // Start Quiz
+    // Start Quiz — returns raw entity (frontend reads quiz.title, quiz.subject etc. for quizMeta)
     @PostMapping("/quizzes/{quizId}/start")
-    public ResponseEntity<QuizAttempt> startQuiz(@PathVariable Long quizId) {
+    public ResponseEntity<QuizAttemptResponse> startQuiz(@PathVariable Long quizId) {
         return ResponseEntity.ok(quizAttemptService.startQuiz(quizId));
     }
 
@@ -45,27 +44,27 @@ public class StudentController {
         return ResponseEntity.ok("Answer submitted");
     }
 
-    // Get Attempt Details (for navigation panel)
+    // Get Attempt Details
     @GetMapping("/attempts/{attemptId}")
-    public ResponseEntity<QuizAttempt> getAttempt(@PathVariable Long attemptId) {
+    public ResponseEntity<QuizAttemptResponse> getAttempt(@PathVariable Long attemptId) {
         return ResponseEntity.ok(quizAttemptService.getAttemptById(attemptId));
     }
 
-    // Get All Answers for Navigation
-  @GetMapping("/attempts/{attemptId}/answers")
-public ResponseEntity<List<StudentAnswerResponse>> getAttemptAnswers(@PathVariable Long attemptId) {
-    return ResponseEntity.ok(quizAttemptService.getAttemptAnswers(attemptId));
-}
+    // Get All Answers for Question Navigation
+    @GetMapping("/attempts/{attemptId}/answers")
+    public ResponseEntity<List<StudentAnswerResponse>> getAttemptAnswers(@PathVariable Long attemptId) {
+        return ResponseEntity.ok(quizAttemptService.getAttemptAnswers(attemptId));
+    }
 
     // Record Tab-Switch Warning
     @PostMapping("/attempts/{attemptId}/warning")
-    public ResponseEntity<QuizAttempt> recordWarning(@PathVariable Long attemptId) {
+    public ResponseEntity<QuizAttemptResponse> recordWarning(@PathVariable Long attemptId) {
         return ResponseEntity.ok(quizAttemptService.recordWarning(attemptId));
     }
 
     // Submit Quiz
     @PostMapping("/attempts/{attemptId}/submit")
-    public ResponseEntity<QuizAttempt> submitQuiz(@PathVariable Long attemptId) {
+    public ResponseEntity<QuizAttemptResponse> submitQuiz(@PathVariable Long attemptId) {
         return ResponseEntity.ok(quizAttemptService.submitQuiz(attemptId));
     }
 

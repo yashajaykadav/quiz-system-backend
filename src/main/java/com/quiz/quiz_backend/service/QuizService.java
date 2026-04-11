@@ -26,17 +26,12 @@ public class QuizService {
     private final UserRepository userRepository;
 
     @Transactional
-    public Quiz createQuiz(QuizRequest request) {
-
-        // ✅ Validate datetime
+    public QuizResponse createQuiz(QuizRequest request) {
         if (request.getScheduledDate() == null) {
             throw new RuntimeException("Scheduled date is required");
         }
 
-        String userName = SecurityContextHolder.getContext()
-                .getAuthentication()
-                .getName();
-
+        String userName = SecurityContextHolder.getContext().getAuthentication().getName();
         User admin = userRepository.findByUsername(userName)
                 .orElseThrow(() -> new RuntimeException("Admin not found"));
 
@@ -47,10 +42,12 @@ public class QuizService {
                 .orElseThrow(() -> new RuntimeException("Topic not found"));
 
         List<Question> questions = questionRepository.findAllById(request.getQuestionIds());
-
         if (questions.size() != request.getQuestionIds().size()) {
             throw new RuntimeException("Some questions not found");
         }
+
+        // totalMarks = sum of actual question marks (not just count)
+        int totalMarks = questions.stream().mapToInt(q -> q.getMarks() != null ? q.getMarks() : 1).sum();
 
         Quiz quiz = Quiz.builder()
                 .title(request.getTitle())
@@ -59,56 +56,53 @@ public class QuizService {
                 .topic(topic)
                 .questions(questions)
                 .durationMinutes(request.getDurationMinutes())
-                .scheduledDate(request.getScheduledDate()) // ✅ correct
-                .totalMarks(questions.size())
+                .scheduledDate(request.getScheduledDate())
+                .totalMarks(totalMarks)
                 .createdBy(admin)
                 .build();
 
-        return quizRepository.save(quiz);
+        quiz = quizRepository.save(quiz);
+        return toQuizResponse(quiz);
     }
 
+    @Transactional
     public List<QuizResponse> getTodayQuizzes() {
-
         LocalDate today = LocalDate.now();
-
         LocalDateTime startOfDay = today.atStartOfDay();
-
-        // ✅ FIXED (no missing edge cases)
         LocalDateTime endOfDay = today.atTime(LocalTime.MAX);
 
         return quizRepository
                 .findByScheduledDateBetween(startOfDay, endOfDay)
                 .stream()
-                .map(this::convertToResponse)
+                .map(this::toQuizResponse)
                 .collect(Collectors.toList());
     }
 
+    @Transactional
     public Quiz getQuizById(Long id) {
         return quizRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Quiz not found"));
     }
 
-    public List<Quiz> getAllQuizzes() {
-        return quizRepository.findAll();
+    @Transactional
+    public List<QuizResponse> getAllQuizzes() {
+        return quizRepository.findAll().stream()
+                .map(this::toQuizResponse)
+                .collect(Collectors.toList());
     }
 
-    private QuizResponse convertToResponse(Quiz quiz) {
-
+    // Public so AdminController can map createQuiz and getAllQuizzes results to DTO if needed
+    public QuizResponse toQuizResponse(Quiz quiz) {
         QuizResponse response = new QuizResponse();
-
         response.setId(quiz.getId());
         response.setTitle(quiz.getTitle());
         response.setDescription(quiz.getDescription());
-        response.setSubjectName(quiz.getSubject().getName());
-        response.setTopicName(quiz.getTopic().getName());
+        response.setSubjectName(quiz.getSubject() != null ? quiz.getSubject().getName() : null);
+        response.setTopicName(quiz.getTopic() != null ? quiz.getTopic().getName() : null);
         response.setDurationMinutes(quiz.getDurationMinutes());
-
-        // ✅ send full datetime
         response.setScheduledDate(quiz.getScheduledDate());
-
         response.setTotalMarks(quiz.getTotalMarks());
-        response.setTotalQuestions(quiz.getQuestions().size());
-
+        response.setTotalQuestions(quiz.getQuestions() != null ? quiz.getQuestions().size() : 0);
         return response;
     }
 }

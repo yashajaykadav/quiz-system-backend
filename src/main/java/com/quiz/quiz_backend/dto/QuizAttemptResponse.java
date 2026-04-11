@@ -12,9 +12,13 @@ public class QuizAttemptResponse {
     private String subjectName;
     private String topicName;
     private LocalDateTime startTime;
-    private LocalDateTime endTime;
+    private LocalDateTime endTime; // mapped from submittedAt
     private Integer obtainedMarks;
     private Integer totalMarks;
     private Double percentage;
     private AttemptStatus status;
+    private Boolean autoSubmitted;
+    private Integer warningCount;
+    private Integer durationMinutes;
+    private Integer totalQuestions;
 }
