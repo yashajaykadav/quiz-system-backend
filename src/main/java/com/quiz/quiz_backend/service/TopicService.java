@@ -7,6 +7,8 @@ import com.quiz.quiz_backend.entity.Topic;
 import com.quiz.quiz_backend.repository.SubjectRepository;
 import com.quiz.quiz_backend.repository.TopicRepository;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +37,7 @@ public class TopicService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable("topics")
     public List<TopicResponse> getAllTopics() {
         return topicRepository.findAll().stream()
                 .map(this::toTopicResponse)
@@ -42,6 +45,7 @@ public class TopicService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "topics", key = "#subjectId")
     public List<TopicResponse> getTopicsBySubject(Long subjectId) {
         return topicRepository.findBySubjectId(subjectId).stream()
                 .map(this::toTopicResponse)
@@ -62,5 +66,9 @@ public class TopicService {
             r.setSubjectName(t.getSubject().getName());
         }
         return r;
+    }
+
+    public long getCount() {
+        return topicRepository.count();
     }
 }

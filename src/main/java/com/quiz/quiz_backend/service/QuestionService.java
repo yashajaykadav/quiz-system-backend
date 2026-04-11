@@ -9,6 +9,8 @@ import com.quiz.quiz_backend.repository.QuestionRepository;
 import com.quiz.quiz_backend.repository.SubjectRepository;
 import com.quiz.quiz_backend.repository.TopicRepository;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,11 +26,11 @@ public class QuestionService {
     private final SubjectRepository subjectRepository;
 
     @Transactional
-    public QuestionResponse createQuestion(QuestionRequest request){
-        Subject subject = subjectRepository.findById(request.getSubjectId()).
-                orElseThrow(()->new RuntimeException("Subject not found"));
-        Topic topic = topicRepository.findById(request.getTopicId()).orElseThrow(()->
-                new RuntimeException("Topic not found"));
+    public QuestionResponse createQuestion(QuestionRequest request) {
+        Subject subject = subjectRepository.findById(request.getSubjectId())
+                .orElseThrow(() -> new RuntimeException("Subject not found"));
+        Topic topic = topicRepository.findById(request.getTopicId())
+                .orElseThrow(() -> new RuntimeException("Topic not found"));
 
         Question question = Question.builder()
                 .questionText(request.getQuestionText())
@@ -48,18 +50,20 @@ public class QuestionService {
     }
 
     @Transactional(readOnly = true)
-    public List<QuestionResponse> getQuestionBySubjectAndTopic(Long subjectId, Long topicId){
-        return questionRepository.findBySubjectIdAndTopicId(subjectId,topicId)
+    @Cacheable(value = "questions", key = "#subjectId + '-' + #topicId")
+    public List<QuestionResponse> getQuestionBySubjectAndTopic(Long subjectId, Long topicId) {
+        return questionRepository.findBySubjectIdAndTopicId(subjectId, topicId)
                 .stream().map(this::toQuestionResponse).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public List<QuestionResponse> getAllQuestions(){
+    @Cacheable(value = "questions")
+    public List<QuestionResponse> getAllQuestions() {
         return questionRepository.findAll()
                 .stream().map(this::toQuestionResponse).collect(Collectors.toList());
     }
 
-    public void deleteQuestion(Long questionId){
+    public void deleteQuestion(Long questionId) {
         questionRepository.deleteById(questionId);
     }
 
@@ -84,5 +88,9 @@ public class QuestionService {
             r.setTopicName(q.getTopic().getName());
         }
         return r;
+    }
+
+    public long getCount() {
+        return questionRepository.count();
     }
 }

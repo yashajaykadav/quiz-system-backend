@@ -6,6 +6,8 @@ import com.quiz.quiz_backend.entity.*;
 import com.quiz.quiz_backend.repository.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -85,13 +87,15 @@ public class QuizService {
     }
 
     @Transactional
+    @Cacheable(value = "quizzes")
     public List<QuizResponse> getAllQuizzes() {
         return quizRepository.findAll().stream()
                 .map(this::toQuizResponse)
                 .collect(Collectors.toList());
     }
 
-    // Public so AdminController can map createQuiz and getAllQuizzes results to DTO if needed
+    // Public so AdminController can map createQuiz and getAllQuizzes results to DTO
+    // if needed
     public QuizResponse toQuizResponse(Quiz quiz) {
         QuizResponse response = new QuizResponse();
         response.setId(quiz.getId());

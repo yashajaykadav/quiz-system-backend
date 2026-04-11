@@ -4,12 +4,17 @@ import com.quiz.quiz_backend.dto.*;
 import com.quiz.quiz_backend.entity.*;
 import com.quiz.quiz_backend.service.*;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -25,8 +30,8 @@ public class AdminController {
 
     // ── Students ──────────────────────────────────────────────────────────
     @GetMapping("/students")
-    public ResponseEntity<List<User>> getAllStudents() {
-        return ResponseEntity.ok(userService.getStudents());
+    public ResponseEntity<Page<User>> getAllStudents(Pageable pageable) {
+        return ResponseEntity.ok(userService.getStudents(pageable));
     }
 
     @PostMapping("/students")
@@ -122,5 +127,16 @@ public class AdminController {
     @GetMapping("/results/all")
     public ResponseEntity<List<StudentResultResponse>> getAllResults() {
         return ResponseEntity.ok(studentResultService.getAllStudentResultsForAdmin().getResults());
+    }
+
+    @Cacheable("stats")
+    @GetMapping("/stats")
+    public ResponseEntity<Map<String, Long>> getStats() {
+        Map<String, Long> stats = new HashMap<>();
+        stats.put("subjects", subjectService.getCount());
+        stats.put("topics", topicService.getCount());
+        stats.put("questions", questionService.getCount());
+        stats.put("students", userService.getCount());
+        return ResponseEntity.ok(stats);
     }
 }

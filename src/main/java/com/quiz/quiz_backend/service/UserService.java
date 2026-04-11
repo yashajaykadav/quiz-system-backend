@@ -2,6 +2,8 @@ package com.quiz.quiz_backend.service;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -19,8 +21,8 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder encoder;
 
-    public List<User> getStudents() {
-        return userRepository.findByRole(Role.STUDENT);
+    public Page<User> getStudents(Pageable pageable) {
+        return userRepository.findByRole(Role.STUDENT, pageable);
     }
 
     public User saveStudent(StudentRequest request) {
@@ -55,5 +57,9 @@ public class UserService {
 
         user.setActive(!user.getActive());
         return userRepository.save(user);
+    }
+
+    public long getCount() {
+        return userRepository.countByRole(Role.STUDENT);
     }
 }

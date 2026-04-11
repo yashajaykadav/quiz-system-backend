@@ -7,6 +7,8 @@ import com.quiz.quiz_backend.entity.User;
 import com.quiz.quiz_backend.repository.QuizAttemptRepository;
 import com.quiz.quiz_backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +25,7 @@ public class StudentResultService {
         private final UserRepository userRepository;
 
         @Transactional(readOnly = true)
+        @Cacheable(value = "results")
         public OverallPerformanceResponse getOverallPerformance() {
                 String username = SecurityContextHolder.getContext().getAuthentication().getName();
                 User student = userRepository.findByUsername(username)
@@ -68,6 +71,7 @@ public class StudentResultService {
         }
 
         @Transactional(readOnly = true)
+        @Cacheable(value = "results")
         public OverallPerformanceResponse getAllStudentResultsForAdmin() {
 
                 List<QuizAttempt> allAttempts = quizAttemptRepository.findAll();
