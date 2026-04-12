@@ -14,4 +14,6 @@ public interface QuizRepository extends JpaRepository<Quiz,Long> {
     List<Quiz> findBySubjectId(Long subId);
     List<Quiz> findByScheduledDateBetween(LocalDateTime start, LocalDateTime end);
 
+    void deleteById(Long id);
+
 }

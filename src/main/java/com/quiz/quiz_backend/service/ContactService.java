@@ -31,4 +31,8 @@ public class ContactService {
         contactRequestRepository.save(request);
     }
 
+    public void delete(Long id) {
+        contactRequestRepository.deleteById(id);
+    }
+
 }

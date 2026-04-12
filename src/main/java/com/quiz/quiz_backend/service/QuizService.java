@@ -7,7 +7,8 @@ import com.quiz.quiz_backend.repository.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
-import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;  
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -94,8 +95,15 @@ public class QuizService {
                 .collect(Collectors.toList());
     }
 
-    // Public so AdminController can map createQuiz and getAllQuizzes results to DTO
-    // if needed
+    @Transactional
+    @CacheEvict(value = "quizzes", allEntries = true)
+    public void deleteQuiz(Long id) {
+        if (!quizRepository.existsById(id)) {
+            throw new RuntimeException("Quiz not found");
+        }
+        quizRepository.deleteById(id);
+    }
+
     public QuizResponse toQuizResponse(Quiz quiz) {
         QuizResponse response = new QuizResponse();
         response.setId(quiz.getId());

@@ -3,6 +3,7 @@ package com.quiz.quiz_backend.controller;
 import java.util.List;
 
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -38,5 +39,10 @@ public class ContactController {
     @PatchMapping("/admin/contact/{id}/resolve")
     public void resolve(@PathVariable Long id) {
         contactService.markResolved(id);
+    }
+
+    @DeleteMapping("/admin/contact/{id}")
+    public void delete(@PathVariable Long id) {
+        contactService.delete(id);
     }
 }

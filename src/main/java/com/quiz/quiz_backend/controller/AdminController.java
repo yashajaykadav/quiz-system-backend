@@ -123,6 +123,12 @@ public class AdminController {
         return ResponseEntity.ok(quizService.getAllQuizzes());
     }
 
+    @DeleteMapping("/quizzes/{id}")
+    public ResponseEntity<String> deleteQuiz(@PathVariable Long id) {
+        quizService.deleteQuiz(id);
+        return ResponseEntity.ok("Quiz deleted successfully");
+    }
+
     // ── Results ───────────────────────────────────────────────────────────
     @GetMapping("/results/all")
     public ResponseEntity<List<StudentResultResponse>> getAllResults() {
