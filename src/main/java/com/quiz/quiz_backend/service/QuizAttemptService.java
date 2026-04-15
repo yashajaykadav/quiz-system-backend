@@ -6,9 +6,12 @@ import com.quiz.quiz_backend.dto.SubmitAnswerRequest;
 import com.quiz.quiz_backend.entity.*;
 import com.quiz.quiz_backend.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict; // Added
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -27,6 +30,7 @@ public class QuizAttemptService {
     private final QuestionRepository questionRepository;
 
     @Transactional
+    @CacheEvict(value = "results", allEntries = true) // FIX: Clears performance cache when status changes
     public QuizAttemptResponse startQuiz(Long quizId) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User student = userRepository.findByUsername(username)
@@ -39,12 +43,16 @@ public class QuizAttemptService {
             throw new RuntimeException("Quiz not available today");
         }
 
-        Optional<QuizAttempt> completed = quizAttemptRepository.findByQuizIdAndStudentIdAndStatus(quizId, student.getId(), AttemptStatus.COMPLETED);
+        Optional<QuizAttempt> completed = quizAttemptRepository.findByQuizIdAndStudentIdAndStatus(quizId,
+                student.getId(), AttemptStatus.COMPLETED);
         if (completed.isPresent()) {
-            throw new RuntimeException("Quiz already completed. Multiple attempts are not allowed.");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Quiz already completed. Multiple attempts are not allowed.");
         }
 
-        Optional<QuizAttempt> inProgress = quizAttemptRepository.findByQuizIdAndStudentIdAndStatus(quizId, student.getId(), AttemptStatus.IN_PROGRESS);
+        Optional<QuizAttempt> inProgress = quizAttemptRepository.findByQuizIdAndStudentIdAndStatus(quizId,
+                student.getId(), AttemptStatus.IN_PROGRESS);
         if (inProgress.isPresent()) {
             return toResponse(inProgress.get());
         }
@@ -74,9 +82,8 @@ public class QuizAttemptService {
     }
 
     @Transactional
+    @CacheEvict(value = "results", allEntries = true) // FIX: Auto-submit via warnings changes status
     public QuizAttemptResponse recordWarning(Long attemptId) {
-//... (no changes in this block, continuing to end of file to safely replace)
-
         QuizAttempt attempt = quizAttemptRepository.findById(attemptId)
                 .orElseThrow(() -> new RuntimeException("Quiz attempt not found"));
 
@@ -117,6 +124,7 @@ public class QuizAttemptService {
     }
 
     @Transactional
+    @CacheEvict(value = "results", allEntries = true) // FIX: Clears cache when quiz is finished
     public QuizAttemptResponse submitQuiz(Long attemptId) {
         QuizAttempt attempt = quizAttemptRepository.findById(attemptId)
                 .orElseThrow(() -> new RuntimeException("Quiz attempt not found"));
@@ -152,13 +160,12 @@ public class QuizAttemptService {
                 .selectedOption(answer.getSelectedOption())
                 .isCorrect(answer.getIsCorrect())
                 .attempted(answer.getAttempted())
-                .build()
-        ).toList();
+                .build()).toList();
     }
 
     private void submitAttemptLogic(QuizAttempt attempt) {
         List<StudentAnswer> answers = studentAnswerRepository.findByQuizAttemptId(attempt.getId());
-        
+
         int obtainedMarks = answers.stream()
                 .filter(StudentAnswer::getIsCorrect)
                 .mapToInt(ans -> ans.getQuestion().getMarks() != null ? ans.getQuestion().getMarks() : 1)

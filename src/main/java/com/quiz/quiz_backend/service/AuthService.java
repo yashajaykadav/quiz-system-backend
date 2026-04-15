@@ -29,28 +29,35 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
 
     public LoginResponse login(LoginRequest request) {
-        // 1. Authenticate using Spring Security
-        // If this fails, Spring Security throws BadCredentialsException automatically
+        // 1. Authenticate
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getUsername(),
-                        request.getPassword()
-                )
-        );
+                        request.getPassword()));
 
-        // 2. Fetch User with Custom Exception
+        // 2. Fetch User
         User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + request.getUsername()));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + request.getUsername()));
 
-        // 3. Professional Practice: Update login metadata
         user.setLastLogin(LocalDateTime.now());
         userRepository.save(user);
 
-        // 4. Token Generation
+        // 3. Token Generation (Updated method names)
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getUsername());
-        String token = jwtUtil.generateToken(userDetails, user.getRole().name());
 
-        return new LoginResponse(token, user.getUsername(), user.getRole().name(), user.getFullName());
+        // FIX: Changed generateToken to generateAccessToken
+        String accessToken = jwtUtil.generateAccessToken(userDetails, user.getRole().name());
+
+        // NEW: Generate the Refresh Token
+        String refreshToken = jwtUtil.generateRefreshToken(user.getUsername());
+
+        // 4. Return both tokens
+        return new LoginResponse(
+                accessToken,
+                refreshToken, // Add this to your DTO
+                user.getUsername(),
+                user.getRole().name(),
+                user.getFullName());
     }
 
     public void changePassword(String username, ChangePasswordRequest request) {

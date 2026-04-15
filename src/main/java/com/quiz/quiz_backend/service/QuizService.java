@@ -8,7 +8,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;  
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -29,6 +29,7 @@ public class QuizService {
     private final UserRepository userRepository;
 
     @Transactional
+    @CacheEvict(value = "quizzes", allEntries = true) // FIX: Evict cache when a new quiz is created
     public QuizResponse createQuiz(QuizRequest request) {
         if (request.getScheduledDate() == null) {
             throw new RuntimeException("Scheduled date is required");
@@ -49,8 +50,9 @@ public class QuizService {
             throw new RuntimeException("Some questions not found");
         }
 
-        // totalMarks = sum of actual question marks (not just count)
-        int totalMarks = questions.stream().mapToInt(q -> q.getMarks() != null ? q.getMarks() : 1).sum();
+        int totalMarks = questions.stream()
+                .mapToInt(q -> q.getMarks() != null ? q.getMarks() : 1)
+                .sum();
 
         Quiz quiz = Quiz.builder()
                 .title(request.getTitle())

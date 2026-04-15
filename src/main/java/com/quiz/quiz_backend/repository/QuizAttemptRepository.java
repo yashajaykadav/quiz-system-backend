@@ -9,10 +9,13 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface QuizAttemptRepository extends JpaRepository<QuizAttempt,Long> {
-    List<QuizAttempt>findByStudentId(Long studentId);
+public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, Long> {
+    List<QuizAttempt> findByStudentId(Long studentId);
+
     List<QuizAttempt> findByQuizIdAndStudentId(Long quizId, Long studentId);
-    List<QuizAttempt> findByStudentIdAndStatus(Long studentId,AttemptStatus status);
+
+    List<QuizAttempt> findByStudentIdAndStatus(Long studentId, AttemptStatus status);
+
     Optional<QuizAttempt> findByQuizIdAndStudentIdAndStatus(Long quizId, Long studentId, AttemptStatus status);
 
 }

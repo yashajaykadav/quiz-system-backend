@@ -8,6 +8,7 @@ import com.quiz.quiz_backend.repository.SubjectRepository;
 import com.quiz.quiz_backend.repository.TopicRepository;
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +23,7 @@ public class TopicService {
     private final SubjectRepository subjectRepository;
 
     @Transactional
+    @CacheEvict(value="topics" , allEntries = true)
     public TopicResponse createTopic(TopicRequest request) {
         Subject subject = subjectRepository.findById(request.getSubjectId())
                 .orElseThrow(() -> new RuntimeException("Subject Not Found"));
@@ -37,7 +39,7 @@ public class TopicService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable("topics")
+    @Cacheable(value = "topics" ,key = "'all'")
     public List<TopicResponse> getAllTopics() {
         return topicRepository.findAll().stream()
                 .map(this::toTopicResponse)
@@ -52,6 +54,7 @@ public class TopicService {
                 .toList();
     }
 
+    @CacheEvict(value="topics" , allEntries = true)
     public void deleteTopic(Long id) {
         topicRepository.deleteById(id);
     }
