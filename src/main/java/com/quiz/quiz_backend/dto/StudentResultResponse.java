@@ -17,4 +17,5 @@ public class StudentResultResponse {
     private Integer obtainedMarks;
     private Double percentage;
     private String status;
+    private int warningCount;
 }

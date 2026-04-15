@@ -10,6 +10,7 @@ import com.quiz.quiz_backend.repository.SubjectRepository;
 import com.quiz.quiz_backend.repository.TopicRepository;
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +27,7 @@ public class QuestionService {
     private final SubjectRepository subjectRepository;
 
     @Transactional
+    @CacheEvict(value = "questions", allEntries = true) // Clears all question-related caches
     public QuestionResponse createQuestion(QuestionRequest request) {
         Subject subject = subjectRepository.findById(request.getSubjectId())
                 .orElseThrow(() -> new RuntimeException("Subject not found"));
@@ -57,14 +59,23 @@ public class QuestionService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(value = "questions")
+    @Cacheable(value = "questions", key = "'all'") // Consistent key for the full list
     public List<QuestionResponse> getAllQuestions() {
         return questionRepository.findAll()
                 .stream().map(this::toQuestionResponse).collect(Collectors.toList());
     }
 
+    @Transactional
+    @CacheEvict(value = "questions", allEntries = true) // Ensures deleted questions disappear from lists
     public void deleteQuestion(Long questionId) {
+        if (!questionRepository.existsById(questionId)) {
+            throw new RuntimeException("Question not found");
+        }
         questionRepository.deleteById(questionId);
+    }
+
+    public long getCount() {
+        return questionRepository.count();
     }
 
     private QuestionResponse toQuestionResponse(Question q) {
@@ -90,7 +101,4 @@ public class QuestionService {
         return r;
     }
 
-    public long getCount() {
-        return questionRepository.count();
-    }
 }
