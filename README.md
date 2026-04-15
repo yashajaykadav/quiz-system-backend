@@ -1,5 +1,3 @@
-Here is the polished, professional **`README.md`** code for your repository. It is accurately grounded in your codebase—reflecting your specific tech stack, security implementation, and the anti-cheat logic found in your services.
-
 ```markdown
 # 📝 Quiz System Backend
 
@@ -104,11 +102,3 @@ The project uses **JaCoCo** to generate code coverage reports for the service la
 ## 📜 License
 This project is licensed under the **MIT License**.
 ```
-
-### **Instructions for committing:**
-1. Copy the code above.
-2. Create or replace the `README.md` file in your project root.
-3. Use the following command to commit:
-   `git add README.md && git commit -m "docs: complete rewrite of README to reflect 2026 architecture and anti-cheat features"`
-
-Does your frontend repo need a matching README that focuses on the Fluxen UI and student dashboard?
